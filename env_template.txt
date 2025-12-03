@@ -1,0 +1,20 @@
+# OpenAI API Configuration
+# Get your API key from: https://platform.openai.com/api-keys
+# Copy this file to .env and add your API key
+
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Optional: ChromaDB Configuration
+# CHROMA_DB_PATH=chroma_db
+# COLLECTION_NAME=docx_rag_collection
+
+# Optional: Model Configuration
+# EMBEDDING_MODEL=text-embedding-3-small
+# LLM_MODEL=gpt-4o-mini
+
+# Optional: Pipeline Configuration
+# CHUNK_SIZE=1000
+# RETRIEVAL_COUNT=3
+# TEMPERATURE=0.5
+# MAX_RESPONSE_TOKENS=800
+

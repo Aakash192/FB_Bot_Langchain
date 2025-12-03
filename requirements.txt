@@ -1,0 +1,24 @@
+# DOCX RAG Pipeline - Dependencies
+
+# Core dependencies
+python-dotenv>=1.0.0
+openai>=1.12.0
+# ChromaDB: Latest version (requires Python 3.9+)
+# For Python 3.8, use: pip install 'chromadb==0.4.18' typing-extensions>=4.0.0
+chromadb>=0.4.22
+python-docx>=1.1.0
+tiktoken>=0.5.2
+
+# Optional dependencies for Excel support
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Utilities
+numpy>=1.24.0
+# For Python 3.8 compatibility
+typing-extensions>=4.0.0
+
+# Web framework for UI
+flask>=3.0.0
+flask-cors>=4.0.0
+

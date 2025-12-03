@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Franquicia Boost Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Floating Chat Button -->
+    <button id="chatButton" class="chat-button" aria-label="Open chat">
+        <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="currentColor"/>
+        </svg>
+    </button>
+
+    <!-- Chat Box -->
+    <div id="chatBox" class="chat-box hidden">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-left">
+                <svg class="header-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="header-text">
+                    <h2>Franquicia Boost Assistant</h2>
+                    <span class="online-status">• Online</span>
+                </div>
+            </div>
+            <button id="closeButton" class="close-button" aria-label="Close chat">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <!-- AI Notice -->
+        <div id="aiNotice" class="ai-notice">
+            <span>AI Chatbot Notice: This is an AI-powered assistant. While we strive for accuracy, the AI may occasionally make mistakes. Please verify important information.</span>
+            <button id="dismissNotice" class="dismiss-notice" aria-label="Dismiss notice">×</button>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div id="chatMessages" class="chat-messages">
+            <!-- Initial greeting message -->
+            <div class="message assistant-message">
+                <div class="message-icon">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="message-content">
+                    <p>Hey! 👋 I'm your Franquicia Boost assistant. Ready to explore some awesome franchise opportunities? Let's chat!</p>
+                </div>
+            </div>
+
+            <!-- Suggested Prompts -->
+            <div class="suggested-prompts">
+                <button class="prompt-button" data-prompt="How do I find franchise opportunities?">How do I find franchise opportunities?</button>
+                <button class="prompt-button" data-prompt="What franchises are available?">What franchises are available?</button>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+            <button class="whatsapp-button" aria-label="WhatsApp">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                    </svg>
+                </button>
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    class="message-input" 
+                    placeholder="Type your message..."
+                    autocomplete="off"
+                />
+                <button id="sendButton" class="send-button" aria-label="Send message">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-icon openai-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.281 9.821a5.985 5.985 0 0 0-.516-1.3 5.99 5.99 0 0 0-6.635-3.02 5.985 5.985 0 0 0-1.311.52c-.01 0-.01 0-.01-.01a5.99 5.99 0 0 0-10.26 3.84c0 .01-.01.01-.01.02a5.99 5.99 0 0 0 3.02 6.635 5.985 5.985 0 0 0 1.3.516c.01 0 .01.01.02.01a5.99 5.99 0 0 0 10.25-3.84c0-.01.01-.01.01-.02a5.985 5.985 0 0 0 .52-1.311c.01-.01.01-.01.02-.01zm-3.85 4.75a4.475 4.475 0 0 1-2.876 2.876 4.485 4.485 0 0 1-3.55-.48c-.01-.01-.02 0-.03-.01a4.48 4.48 0 0 1-4.87-4.87c0-.01 0-.02-.01-.03a4.485 4.485 0 0 1 .48-3.55 4.475 4.475 0 0 1 2.876-2.876 4.485 4.485 0 0 1 3.55.48c.01.01.02 0 .03.01a4.48 4.48 0 0 1 4.87 4.87c0 .01 0 .02.01.03a4.485 4.485 0 0 1-.48 3.55z"/>
+                </svg>
+            </div>
+            <div class="sidebar-icon snowflake-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2v20M2 12h20M5.636 5.636l12.728 12.728M18.364 5.636L5.636 18.364M12 6l-6 6 6 6 6-6-6-6z"/>
+                </svg>
+            </div>
+            <div class="sidebar-icon plus-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2v20M2 12h20"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>
+
