@@ -15,10 +15,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+# Configure CORS to allow specific origins
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://staging2.franquiciaboost.com",
+            "https://franquiciaboost.com",
+            "https://www.franquiciaboost.com",
+            "http://localhost:3000",
+            "http://localhost:8000"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
 
 # Initialize the RAG pipeline
 pipeline = None
+
+# Initialize pipeline when module is imported (for Gunicorn)
+def initialize_pipeline_on_startup():
+    """Initialize pipeline on module import."""
+    global pipeline
+    if pipeline is None:
+        logger.info("Initializing Franquicia Boost Assistant...")
+        initialize_pipeline()
 
 def clean_answer(text):
     """
@@ -86,8 +107,8 @@ def initialize_pipeline():
         pipeline = DocxExcelRagPipeline(
             chroma_db_path="chroma_db",
             chunk_size=1000,
-            retrieval_count=6,  # Increased from 3 to 6 for better context
-            temperature=0.2,  # Lower temperature for more accurate, consistent answers
+            retrieval_count=15,  # Increased to ensure Q&A documents are retrieved
+            temperature=0.0,  # Zero temperature for exact reproduction
             max_response_tokens=1200  # Increased for more detailed answers
         )
         
@@ -171,9 +192,11 @@ def health():
             'message': str(e)
         }), 500
 
+# Initialize pipeline on startup (works for both direct run and Gunicorn)
+initialize_pipeline_on_startup()
+
 if __name__ == '__main__':
-    logger.info("Initializing Franquicia Boost Assistant...")
-    if initialize_pipeline():
+    if pipeline is not None:
         logger.info("Starting Flask server...")
         app.run(debug=True, host='0.0.0.0', port=5000)
     else:

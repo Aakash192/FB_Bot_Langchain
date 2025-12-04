@@ -1,0 +1,825 @@
+<!-- Franquicia Boost Chat Widget - WordPress WPCode Integration -->
+<!-- Paste this entire code block into WPCode > Add Snippet > HTML -->
+
+<div id="fb-chat-widget-container">
+    <!-- Floating Chat Button -->
+    <button id="fb-chat-button" class="fb-chat-button" aria-label="Open Franquicia Boost chat">
+        💬
+    </button>
+
+    <!-- Chat Box -->
+    <div id="fb-chat-box" class="fb-chat-box fb-hidden">
+        <!-- Header -->
+        <div class="fb-chat-header">
+            <div class="fb-header-content">
+                <div class="fb-bot-icon-container">
+                    <img src="https://staging2.franquiciaboost.com/wp-content/uploads/2023/11/cropped-IconOnly_Transparent-2.png" alt="Franquicia Boost Logo" class="fb-bot-icon" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="fb-bot-icon-fallback" style="display: none;">💼</span>
+                </div>
+                <div>
+                    <h3>Franquicia Boost Assistant</h3>
+                    <span class="fb-status">● Online</span>
+                </div>
+            </div>
+            <button id="fb-close-button" class="fb-close-button" aria-label="Close chat">✕</button>
+        </div>
+
+        <!-- Chat Messages Area -->
+        <div id="fb-chat-messages" class="fb-chat-messages">
+            <!-- AI Disclaimer Banner -->
+            <div id="fb-disclaimer-banner" class="fb-disclaimer-banner">
+                <div class="fb-disclaimer-banner-content">
+                    <div class="fb-disclaimer-icon-container">
+                        <img src="https://staging2.franquiciaboost.com/wp-content/uploads/2023/11/cropped-IconOnly_Transparent-2.png" alt="Franquicia Boost" class="fb-disclaimer-icon" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <span class="fb-disclaimer-icon-fallback" style="display: none;">💼</span>
+                    </div>
+                    <div class="fb-disclaimer-text">
+                        <strong>AI Chatbot Notice:</strong> This is an AI-powered assistant. While we strive for accuracy, the AI may occasionally make mistakes. Please verify important information.
+                    </div>
+                    <button id="fb-close-disclaimer" class="fb-close-disclaimer-btn">✕</button>
+                </div>
+            </div>
+
+            <!-- Initial greeting message -->
+            <div class="fb-message fb-assistant-message">
+                <div class="fb-avatar">
+                    <img src="https://staging2.franquiciaboost.com/wp-content/uploads/2023/11/cropped-IconOnly_Transparent-2.png" alt="Franquicia Boost" class="fb-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <span class="fb-avatar-fallback" style="display: none;">💼</span>
+                </div>
+                <div class="fb-bubble">
+                    <p>Hey! 👋 I'm your Franquicia Boost assistant. Ready to explore some awesome franchise opportunities? Let's chat!</p>
+                    <div class="fb-suggested-questions">
+                        <button class="fb-suggested-question" data-prompt="How do I find franchise opportunities?">How do I find franchise opportunities?</button>
+                        <button class="fb-suggested-question" data-prompt="What franchises are available?">What franchises are available?</button>
+                        <button class="fb-suggested-question" data-prompt="How much do franchises cost?">How much do franchises cost?</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div id="fb-typing-indicator" class="fb-typing-indicator fb-hidden">
+            <div class="fb-avatar">
+                <img src="https://staging2.franquiciaboost.com/wp-content/uploads/2023/11/cropped-IconOnly_Transparent-2.png" alt="Franquicia Boost" class="fb-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <span class="fb-avatar-fallback" style="display: none;">💼</span>
+            </div>
+            <div class="fb-typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="fb-chat-input-area">
+            <a id="fb-whatsapp-widget" class="fb-whatsapp-widget" href="#" target="_blank" rel="noopener noreferrer" title="Chat on WhatsApp">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+            </a>
+            <input 
+                type="text" 
+                id="fb-message-input" 
+                class="fb-message-input" 
+                placeholder="Type your message..."
+                autocomplete="off"
+            />
+            <button id="fb-send-button" class="fb-send-button" aria-label="Send message">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Franquicia Boost Chat Widget Styles */
+#fb-chat-widget-container,
+#fb-chat-widget-container * {
+    box-sizing: border-box;
+}
+
+#fb-chat-widget-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 999999;
+    font-family: "Calibri", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+}
+
+/* Chat Button */
+.fb-chat-button {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    color: white;
+    outline: none;
+}
+
+.fb-chat-button:hover {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+}
+
+.fb-chat-button:active {
+    transform: scale(0.98);
+}
+
+
+/* Chat Box */
+.fb-chat-box {
+    position: absolute;
+    bottom: 90px;
+    right: 0;
+    width: 380px;
+    max-width: calc(100vw - 40px);
+    height: 550px;
+    max-height: calc(100vh - 100px);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fb-slide-up 0.3s ease-out;
+}
+
+@keyframes fb-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.fb-hidden {
+    display: none !important;
+}
+
+/* Header */
+.fb-chat-header {
+    background: #ffffff;
+    color: #511d53;
+    padding: 16px;
+    border-radius: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fb-header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.fb-bot-icon-container {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.fb-bot-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    mix-blend-mode: multiply;
+    filter: contrast(1.1);
+}
+
+.fb-bot-icon[src*="logo"] {
+    background: transparent;
+    mix-blend-mode: normal;
+    filter: contrast(1.2) brightness(1.1);
+    mix-blend-mode: darken;
+}
+
+.fb-bot-icon-fallback {
+    font-size: 32px;
+    display: block;
+}
+
+.fb-chat-header h3 {
+    font-size: 16px;
+    margin: 0;
+    color: #511d53;
+}
+
+.fb-status {
+    font-size: 12px;
+    opacity: 0.9;
+    color: #511d53;
+}
+
+.fb-close-button {
+    background: transparent;
+    border: none;
+    color: #511d53;
+    font-size: 24px;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.fb-close-button:hover {
+    background: rgba(81, 29, 83, 0.08);
+}
+
+/* AI Disclaimer Banner */
+.fb-disclaimer-banner {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 2px solid #fbbf24;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    animation: fb-slide-down 0.3s ease;
+    box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+}
+
+.fb-disclaimer-banner.fb-hidden {
+    display: none;
+}
+
+@keyframes fb-slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fb-disclaimer-banner-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.fb-disclaimer-icon-container {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.fb-disclaimer-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    mix-blend-mode: multiply;
+    filter: contrast(1.1);
+}
+
+.fb-disclaimer-icon[src*="logo"] {
+    background: transparent;
+    mix-blend-mode: darken;
+    filter: contrast(1.2) brightness(1.1);
+}
+
+.fb-disclaimer-icon-fallback {
+    font-size: 20px;
+    display: none;
+}
+
+.fb-disclaimer-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #92400e;
+}
+
+.fb-disclaimer-text strong {
+    color: #78350f;
+}
+
+.fb-close-disclaimer-btn {
+    background: transparent;
+    border: none;
+    color: #92400e;
+    font-size: 18px;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+}
+
+.fb-close-disclaimer-btn:hover {
+    background: rgba(146, 64, 14, 0.1);
+}
+
+/* Messages Area */
+.fb-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f7f7f7;
+    scroll-behavior: smooth;
+}
+
+.fb-chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.fb-chat-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.fb-chat-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.fb-message {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 20px;
+    animation: fb-message-fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fb-message:last-child {
+    margin-bottom: 0;
+}
+
+@keyframes fb-message-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fb-assistant-message {
+    flex-direction: row;
+}
+
+.fb-user-message {
+    flex-direction: row-reverse;
+}
+
+.fb-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.fb-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    filter: contrast(1.1);
+    display: block;
+}
+
+.fb-avatar-img[src*="logo"],
+.fb-avatar-img[src*="Logo"] {
+    background: transparent;
+    mix-blend-mode: darken;
+    filter: contrast(1.2) brightness(1.1);
+}
+
+.fb-avatar-fallback {
+    font-size: 24px;
+    display: none;
+}
+
+.fb-bubble {
+    background: #f5eaf4;
+    padding: 10px 14px;
+    border-radius: 12px;
+    max-width: 70%;
+    line-height: 1.5;
+    color: #511d53;
+}
+
+.fb-bubble p,
+.fb-bubble div {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.fb-bubble div {
+    margin-bottom: 8px;
+}
+
+.fb-bubble div:last-child {
+    margin-bottom: 0;
+}
+
+.fb-user-message .bubble {
+    background: #d6a3ff;
+    color: #511d53;
+}
+
+.fb-user-message .fb-avatar::before {
+    content: "👤";
+}
+
+
+/* Suggested Questions */
+.fb-suggested-questions {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fb-suggested-question {
+    background: #d6a3ff;
+    border: 1px solid rgba(80, 23, 74, 0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.fb-suggested-question:hover {
+    background: #c489f5;
+    color: #2d0f2b;
+    border-color: #50174a;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(80, 23, 74, 0.25);
+}
+
+/* Typing Indicator */
+.fb-typing-indicator {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px 10px;
+    background: #f9fafb;
+}
+
+.fb-typing-indicator.fb-hidden {
+    display: none;
+}
+
+.fb-typing-dots {
+    background: #e5e7eb;
+    padding: 10px 14px;
+    border-radius: 12px;
+    display: flex;
+    gap: 4px;
+}
+
+.fb-typing-dots span {
+    width: 8px;
+    height: 8px;
+    background: #9ca3af;
+    border-radius: 50%;
+    animation: fb-bounce 1.4s infinite;
+}
+
+.fb-typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.fb-typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes fb-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+    }
+    30% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Input Area */
+.fb-chat-input-area {
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: #ffffff;
+}
+
+.fb-whatsapp-widget {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #25d366 0%, #20ba5a 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    box-shadow: 0 2px 8px rgba(37, 211, 102, 0.3);
+}
+
+.fb-whatsapp-widget:hover {
+    background: linear-gradient(135deg, #20ba5a 0%, #1da851 100%);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
+}
+
+.fb-whatsapp-widget:active {
+    transform: scale(0.95);
+}
+
+.fb-whatsapp-widget svg {
+    width: 20px;
+    height: 20px;
+}
+
+.fb-message-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
+    color: #1f2937;
+    font-family: inherit;
+}
+
+.fb-message-input::placeholder {
+    color: #9ca3af;
+}
+
+.fb-message-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.fb-send-button {
+    width: 40px;
+    height: 40px;
+    background: #50174a;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(80, 23, 74, 0.3);
+    flex-shrink: 0;
+    outline: none;
+}
+
+.fb-send-button:hover:not(:disabled) {
+    background: #3f123b;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+.fb-send-button:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.fb-send-button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.fb-send-button svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    #fb-chat-widget-container {
+        bottom: 10px;
+        right: 10px;
+    }
+    
+    .fb-chat-box {
+        width: 100%;
+        height: 100%;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+    }
+    
+    .fb-chat-button {
+        width: 56px;
+        height: 56px;
+    }
+}
+</style>
+
+<script>
+(function() {
+    'use strict';
+    
+    // API Configuration
+    const API_URL = 'https://fqbbot.com/api/chat';
+    
+    // DOM Elements
+    const chatButton = document.getElementById('fb-chat-button');
+    const chatBox = document.getElementById('fb-chat-box');
+    const closeButton = document.getElementById('fb-close-button');
+    const messageInput = document.getElementById('fb-message-input');
+    const sendButton = document.getElementById('fb-send-button');
+    const chatMessages = document.getElementById('fb-chat-messages');
+    const disclaimerBanner = document.getElementById('fb-disclaimer-banner');
+    const closeDisclaimer = document.getElementById('fb-close-disclaimer');
+    const suggestedQuestions = document.querySelectorAll('.fb-suggested-question');
+    const typingIndicator = document.getElementById('fb-typing-indicator');
+    
+    // State
+    let isLoading = false;
+    
+    // Toggle chat box
+    function toggleChat() {
+        chatBox.classList.toggle('fb-hidden');
+        if (!chatBox.classList.contains('fb-hidden')) {
+            messageInput.focus();
+        }
+    }
+    
+    // Add message to chat
+    function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `fb-message ${isUser ? 'fb-user-message' : 'fb-assistant-message'}`;
+        
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'fb-avatar';
+        if (!isUser) {
+            avatarDiv.innerHTML = `
+                <img src="https://staging2.franquiciaboost.com/wp-content/uploads/2023/11/cropped-IconOnly_Transparent-2.png" alt="Franquicia Boost" class="fb-avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <span class="fb-avatar-fallback" style="display: none;">💼</span>
+            `;
+        } else {
+            avatarDiv.innerHTML = '<span class="fb-avatar-fallback">👤</span>';
+        }
+        
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'fb-bubble';
+        const p = document.createElement('p');
+        p.textContent = text;
+        bubbleDiv.appendChild(p);
+        
+        messageDiv.appendChild(avatarDiv);
+        messageDiv.appendChild(bubbleDiv);
+        
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Show typing indicator
+    function showTyping() {
+        typingIndicator.classList.remove('fb-hidden');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    // Hide typing indicator
+    function hideTyping() {
+        typingIndicator.classList.add('fb-hidden');
+    }
+    
+    // Send message to API
+    async function sendMessage(question) {
+        if (isLoading) return;
+        
+        isLoading = true;
+        sendButton.disabled = true;
+        
+        // Add user message
+        addMessage(question, true);
+        
+        // Clear input
+        messageInput.value = '';
+        
+        // Show typing indicator
+        showTyping();
+        
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: question })
+            });
+            
+            const data = await response.json();
+            
+            hideTyping();
+            
+            if (data.success && data.answer) {
+                addMessage(data.answer, false);
+            } else {
+                addMessage('Sorry, I encountered an error. Please try again later.', false);
+            }
+        } catch (error) {
+            hideTyping();
+            addMessage('Sorry, I\'m having trouble connecting. Please check your internet connection and try again.', false);
+            console.error('Error:', error);
+        } finally {
+            isLoading = false;
+            sendButton.disabled = false;
+            messageInput.focus();
+        }
+    }
+    
+    // Event Listeners
+    chatButton.addEventListener('click', toggleChat);
+    closeButton.addEventListener('click', toggleChat);
+    
+    sendButton.addEventListener('click', () => {
+        const question = messageInput.value.trim();
+        if (question) {
+            sendMessage(question);
+        }
+    });
+    
+    messageInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const question = messageInput.value.trim();
+            if (question) {
+                sendMessage(question);
+            }
+        }
+    });
+    
+    // Suggested question buttons
+    suggestedQuestions.forEach(button => {
+        button.addEventListener('click', () => {
+            const prompt = button.getAttribute('data-prompt');
+            sendMessage(prompt);
+        });
+    });
+    
+    // Dismiss disclaimer banner
+    if (closeDisclaimer) {
+        closeDisclaimer.addEventListener('click', () => {
+            disclaimerBanner.classList.add('fb-hidden');
+        });
+    }
+    
+    // Close on outside click (optional)
+    document.addEventListener('click', (e) => {
+        if (!chatBox.contains(e.target) && !chatButton.contains(e.target) && !chatBox.classList.contains('fb-hidden')) {
+            // Uncomment to close on outside click
+            // toggleChat();
+        }
+    });
+})();
+</script>
+

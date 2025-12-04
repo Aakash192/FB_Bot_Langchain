@@ -38,7 +38,6 @@ from openai import OpenAI
 try:
     import chromadb
     from chromadb.config import Settings
-    from chromadb.utils import embedding_functions
 except ImportError as e:
     raise ImportError(
         f"Failed to import chromadb: {e}\n"
@@ -47,6 +46,7 @@ except ImportError as e:
 
 import tiktoken
 from dotenv import load_dotenv
+from qa_matcher import QAMatcher
 
 # Load environment variables (suppress warnings for comments in .env)
 load_dotenv(verbose=False)
@@ -57,6 +57,47 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+class CustomOpenAIEmbeddingFunction:
+    """
+    Custom embedding function using OpenAI's new API (v1.0.0+).
+    This replaces ChromaDB's OpenAIEmbeddingFunction which uses the old API.
+    """
+    def __init__(self, api_key: str, model_name: str = "text-embedding-3-small"):
+        """
+        Initialize the custom embedding function.
+        
+        Args:
+            api_key: OpenAI API key
+            model_name: Name of the embedding model to use
+        """
+        self.client = OpenAI(api_key=api_key)
+        self.model_name = model_name
+    
+    def __call__(self, input: List[str]) -> List[List[float]]:
+        """
+        Generate embeddings for input texts.
+        
+        Args:
+            input: List of texts to embed (ChromaDB always passes a list)
+            
+        Returns:
+            List of embedding vectors (list of lists of floats)
+        """
+        if not input:
+            return []
+        
+        try:
+            response = self.client.embeddings.create(
+                model=self.model_name,
+                input=input
+            )
+            embeddings = [item.embedding for item in response.data]
+            return embeddings
+        except Exception as e:
+            logger.error(f"Error generating embeddings: {e}")
+            raise
 
 
 @dataclass
@@ -196,8 +237,8 @@ class DocxExcelRagPipeline:
                     ) from e2
                 raise
         
-        # Create embedding function
-        self.embedding_function = embedding_functions.OpenAIEmbeddingFunction(
+        # Create custom embedding function using new OpenAI API
+        self.embedding_function = CustomOpenAIEmbeddingFunction(
             api_key=self.openai_api_key,
             model_name=self.embedding_model
         )
@@ -207,21 +248,52 @@ class DocxExcelRagPipeline:
         self.collection = None
         self._load_or_create_collection()
         
+        # Initialize Q&A matcher for exact answers
+        try:
+            self.qa_matcher = QAMatcher(chroma_db_path=str(self.chroma_db_path))
+        except Exception as e:
+            logger.warning(f"Could not initialize Q&A matcher: {e}")
+            self.qa_matcher = None
+        
         # System prompt for financial analysis
-        self.system_prompt = """You are an expert franchise analyst specializing in extracting accurate information from Franchise Disclosure Documents (FDDs).
+        self.system_prompt = """You are a franchise information assistant.
 
-KEY RULES:
-- Extract and synthesize information from the provided context to answer questions comprehensively
-- When answering about a specific franchise (e.g., Venture X, Snap-on Tools, WSI), prioritize information from that franchise's document
-- Reference table names, column headers, and section names when providing answers
-- If the question asks "what is X into" or "what does X do", look for business descriptions, services offered, industry information, or business model descriptions
-- Synthesize information from multiple chunks if needed to provide a complete answer
-- Be precise with numbers, dates, and financial figures when available
-- If specific information is truly not available in the context, state what information IS available instead of just saying "not found"
-- Always cite which document and section the information comes from
+🚨🚨🚨 ABSOLUTE PRIORITY RULE - READ THIS FIRST 🚨🚨🚨
 
-DOMAIN CONTEXT:
-You analyze Franchise Disclosure Documents (FDDs) containing franchise information, financial data, and business details. These documents contain critical information about franchise opportunities. Extract relevant information from the provided context to answer questions thoroughly."""
+**Q&A DOCUMENT PROCESSING:**
+
+1. **Check sources**: Look for any source marked "[Q&A DOCUMENT - USE EXACT TEXT]"
+
+2. **If Q&A document found:**
+   - These documents contain question-answer pairs in this format:
+     "Question here?"
+     Answer:
+     [exact answer text]
+   
+   - YOUR TASK: Find the question that matches the user's question
+   - Extract ONLY the text that appears after "Answer:" for that specific question
+   - Copy it EXACTLY - word-for-word, punctuation-for-punctuation
+   - Do NOT paraphrase, summarize, or modify
+   - Do NOT combine with other Q&A pairs
+   - Do NOT add any additional information
+   - Return ONLY that exact answer text and nothing else
+
+3. **If no Q&A document found:**
+   - Use FDD (Franchise Disclosure Document) sources
+   - Extract and synthesize information comprehensively
+   - Reference document names, sections, and tables
+
+EXAMPLE (Q&A Document):
+Source contains:
+"What is Franquicia Boost?"
+Answer:
+Franquicia Boost is a platform that connects franchisors, franchisees, consultants across Canada. It is the online franchise ecosystem where you can apply online, track your application and get the support you need at every step.
+
+User asks: "What is Franquicia Boost?"
+✅ CORRECT RESPONSE: "Franquicia Boost is a platform that connects franchisors, franchisees, consultants across Canada. It is the online franchise ecosystem where you can apply online, track your application and get the support you need at every step."
+❌ WRONG: Adding or changing any words, combining with other answers, or synthesizing
+
+Remember: Q&A documents are pre-approved official answers. Return them EXACTLY as written."""
         
         logger.info("RAG Pipeline initialized successfully")
     
@@ -718,18 +790,28 @@ You analyze Franchise Disclosure Documents (FDDs) containing franchise informati
             Dictionary with answer, sources, and metadata
         """
         try:
-            # Enhance question for better semantic matching
-            enhanced_query = question
-            question_lower = question.lower()
-            
-            # Add context keywords for better retrieval
-            if any(word in question_lower for word in ["what is", "what does", "into", "about", "business", "industry"]):
-                # Add synonyms that might appear in documents
-                enhanced_query = f"{question} business type industry services products operations"
-            
+            # STEP 1: Check for exact Q&A match first
+            if self.qa_matcher:
+                exact_answer = self.qa_matcher.get_exact_answer(question)
+                if exact_answer:
+                    logger.info(f"Returning exact answer from Q&A knowledge base")
+                    return {
+                        'answer': exact_answer,
+                        'sources': [{
+                            'content': 'Q&A Knowledge Base',
+                            'metadata': {'source_type': 'exact_qa_match'},
+                            'relevance_score': 1.0
+                        }],
+                        'metadata': {
+                            'model': 'exact_match',
+                            'retrieval_count': 0,
+                            'temperature': 0,
+                            'source': 'qa_knowledge_base'
+                        }
+                    }
             # Retrieve relevant chunks
             results = self.collection.query(
-                query_texts=[enhanced_query],
+                query_texts=[question],
                 n_results=self.retrieval_count
             )
             
@@ -745,15 +827,45 @@ You analyze Franchise Disclosure Documents (FDDs) containing franchise informati
             retrieved_metadatas = results['metadatas'][0] if results.get('metadatas') else []
             retrieved_distances = results['distances'][0] if results.get('distances') else []
             
-            context_parts = []
+            # Separate Q&A documents from FDD documents and prioritize Q&A
+            qa_chunks = []
+            fdd_chunks = []
+            
             for i, chunk in enumerate(retrieved_chunks):
                 metadata = retrieved_metadatas[i] if i < len(retrieved_metadatas) else {}
+                document_name = metadata.get('document_name', 'Unknown')
+                distance = retrieved_distances[i] if i < len(retrieved_distances) else 1.0
+                
+                chunk_info = {
+                    'chunk': chunk,
+                    'metadata': metadata,
+                    'distance': distance,
+                    'index': i
+                }
+                
+                # Check if it's a Q&A document
+                if any(keyword in document_name for keyword in ['Knowledge', 'AI Bot', 'training', 'Question']):
+                    qa_chunks.append(chunk_info)
+                else:
+                    fdd_chunks.append(chunk_info)
+            
+            # Prioritize Q&A documents by putting them first
+            prioritized_chunks = qa_chunks + fdd_chunks
+            
+            context_parts = []
+            for i, chunk_info in enumerate(prioritized_chunks):
+                chunk = chunk_info['chunk']
+                metadata = chunk_info['metadata']
                 chunk_type = metadata.get('chunk_type', 'text')
                 table_name = metadata.get('table_name')
                 section = metadata.get('section')
                 document_name = metadata.get('document_name', 'Unknown')
                 
-                context_header = f"\n--- Source {i+1} [Document: {document_name}] "
+                # Highlight Q&A documents
+                is_qa = any(keyword in document_name for keyword in ['Knowledge', 'AI Bot', 'training', 'Question'])
+                qa_marker = " [Q&A DOCUMENT - USE EXACT TEXT]" if is_qa else ""
+                
+                context_header = f"\n--- Source {i+1}{qa_marker} [Document: {document_name}] "
                 if chunk_type == 'table' and table_name:
                     context_header += f"(Table: {table_name}) "
                 if section:
@@ -796,11 +908,31 @@ You analyze Franchise Disclosure Documents (FDDs) containing franchise informati
             elif "what does" in question_lower:
                 enhanced_question = f"{question} What services, products, or business activities does this franchise provide?"
             
-            messages = [
-                {"role": "system", "content": self.system_prompt},
-                {
-                    "role": "user",
-                    "content": f"""Based on the following context from Franchise Disclosure Documents (FDDs), answer the question comprehensively by extracting relevant information.
+            # Check if we have Q&A documents in the context
+            has_qa_docs = any('[Q&A DOCUMENT - USE EXACT TEXT]' in part for part in context_parts)
+            
+            if has_qa_docs:
+                # Special handling for Q&A documents - force exact answer extraction
+                user_prompt = f"""🚨 CRITICAL INSTRUCTION - Q&A DOCUMENT DETECTED 🚨
+
+The context below contains Q&A documents with pre-approved answers.
+
+YOUR TASK:
+1. Look for a question in the context that matches: "{question}"
+2. Find the text that appears after "Answer:" for that question
+3. Copy that answer text EXACTLY - word-for-word
+4. Return ONLY that exact answer text
+5. Do NOT add, modify, paraphrase, or combine with other sources
+
+Context:
+{context}
+
+USER QUESTION: {question}
+
+Extract and return the EXACT answer from the Q&A document above."""
+            else:
+                # Standard FDD document handling
+                user_prompt = f"""Based on the following context from Franchise Disclosure Documents (FDDs), answer the question comprehensively by extracting relevant information.
 
 INSTRUCTIONS:
 - Extract and synthesize information from the provided context to answer the question
@@ -817,7 +949,10 @@ Context from documents:
 Question: {question}
 
 Provide a detailed, comprehensive answer by extracting relevant information from the context above. Include the document name and section/table when citing information."""
-                }
+            
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_prompt}
             ]
             
             response = self.client.chat.completions.create(
