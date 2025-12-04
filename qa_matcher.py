@@ -40,59 +40,85 @@ class QAMatcher:
             # Get all items
             all_items = self.collection.get()
             
-            # Filter for Q&A documents
-            for i, metadata in enumerate(all_items['metadatas']):
+            # Filter for Q&A documents and process ALL chunks
+            qa_docs_found = 0
+            for i, (content, metadata) in enumerate(zip(all_items['documents'], all_items['metadatas'])):
                 doc_name = metadata.get('document_name', '')
                 if any(keyword in doc_name for keyword in ['Knowledge', 'AI Bot', 'training', 'Question']):
-                    content = all_items['documents'][i]
-                    # Parse Q&A pairs from content
-                    qa_pairs = self._extract_qa_pairs(content)
+                    # Parse Q&A pairs from content (may have multiple questions per chunk)
+                    qa_pairs = self._extract_qa_pairs(content, metadata)
                     self.qa_cache.extend(qa_pairs)
+                    qa_docs_found += 1
             
-            logger.info(f"Loaded {len(self.qa_cache)} Q&A pairs into cache")
+            logger.info(f"Processed {qa_docs_found} Q&A chunks, loaded {len(self.qa_cache)} Q&A pairs into cache")
             
         except Exception as e:
             logger.error(f"Error loading Q&A documents: {e}")
     
-    def _extract_qa_pairs(self, content: str) -> list:
+    def _extract_qa_pairs(self, content: str, metadata: Dict[str, Any]) -> list:
         """Extract Q&A pairs from document content."""
         qa_pairs = []
         
-        # Split content by numbered items (like "2.", "3.", etc.)
-        # This handles the format where each Q&A block is numbered
-        sections = re.split(r'\n\d+\.\s+', content)
+        # Format 1: Q1: Question / A: Answer format (Knowledge Question shared by Sana)
+        qa_pattern1 = re.findall(r'Q\d+:\s*([^\n]+)\s*\n\s*A:\s*([^\n]+(?:\n(?!Q\d+:)[^\n]+)*)', content, re.MULTILINE)
+        if qa_pattern1:
+            for question, answer in qa_pattern1:
+                question = question.strip()
+                answer = answer.strip()
+                if question and answer:
+                    qa_pairs.append({
+                        'question': question,
+                        'answer': answer,
+                        'normalized_q': normalize_text(question)
+                    })
         
-        for section in sections:
-            if not section.strip():
-                continue
-            
-            # Look for "Answer:" to split question and answer
-            if 'Answer:' in section or 'answer:' in section:
-                parts = re.split(r'(?i)\nanswer:\s*\n?', section, maxsplit=1)
-                
-                if len(parts) == 2:
-                    questions_text = parts[0]
-                    answer_text = parts[1]
-                    
-                    # Extract all questions from the questions section
-                    questions = re.findall(r'"([^"]+\?)"', questions_text)
-                    if not questions:
-                        # Try without quotes
-                        questions = [q.strip() for q in questions_text.split('\n') if '?' in q]
-                    
-                    # Clean answer text - stop at next numbered item or next question
-                    answer_text = re.split(r'\n\d+\.\s+|^\d+\.\s+', answer_text)[0]
-                    answer_text = answer_text.strip().strip('"')
-                    
-                    # Add Q&A pair for each question
-                    for question in questions:
-                        question = question.strip().strip('"\'')
-                        if question and answer_text:
-                            qa_pairs.append({
-                                'question': question,
-                                'answer': answer_text,
-                                'normalized_q': normalize_text(question)
-                            })
+        # Format 2: "Question?" / Answer: format (AI Bot Knowledge training)
+        # Extract questions from content (could be quoted)
+        questions_in_content = re.findall(r'"([^"]+\?)"', content)
+        
+        # Also check if section contains the question
+        section = metadata.get('section', '')
+        if section and section != 'N/A':
+            # Remove numeric prefix like "16. " or "17: "
+            section_clean = re.sub(r'^\d+\.?\s*:?\s*', '', section).strip().strip('"\'')
+            if section_clean and '?' in section_clean:
+                questions_in_content.append(section_clean)
+        
+        # Extract answer from content
+        answer_text = None
+        
+        if 'Answer:' in content or 'answer:' in content:
+            # Split by "Answer:" marker
+            parts = re.split(r'(?i)\nanswer:\s*\n?', content, maxsplit=1)
+            if len(parts) == 2:
+                answer_text = parts[1]
+                # Clean answer - stop at next numbered item or next question
+                answer_text = re.split(r'\n\d+\.\s+|\nQ\d+:', answer_text)[0]
+                answer_text = answer_text.strip().strip('"')
+        
+        # If no explicit "Answer:" found, use the content after the question
+        if not answer_text and questions_in_content:
+            # Remove the question part and take what's left
+            for q in questions_in_content:
+                if q in content:
+                    parts = content.split(q, 1)
+                    if len(parts) == 2:
+                        answer_text = parts[1].strip()
+                        # Clean answer
+                        answer_text = re.split(r'\n\d+\.\s+|\nQ\d+:', answer_text)[0]
+                        answer_text = answer_text.strip().strip('"')
+                        break
+        
+        # Create Q&A pairs for format 2
+        if questions_in_content and answer_text:
+            for question in questions_in_content:
+                question = question.strip().strip('"\'')
+                if question:
+                    qa_pairs.append({
+                        'question': question,
+                        'answer': answer_text,
+                        'normalized_q': normalize_text(question)
+                    })
         
         return qa_pairs
     
