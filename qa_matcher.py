@@ -40,17 +40,47 @@ class QAMatcher:
             # Get all items
             all_items = self.collection.get()
             
-            # Filter for Q&A documents and process ALL chunks
-            qa_docs_found = 0
+            # Separate Q&A documents by priority
+            # Priority 1: "AI Bot Knowledge training" (user's primary Q&A source)
+            # Priority 2: "Knowledge Question shared by Sana" (secondary/fallback)
+            priority_qa = []
+            secondary_qa = []
+            
             for i, (content, metadata) in enumerate(zip(all_items['documents'], all_items['metadatas'])):
                 doc_name = metadata.get('document_name', '')
-                if any(keyword in doc_name for keyword in ['Knowledge', 'AI Bot', 'training', 'Question']):
-                    # Parse Q&A pairs from content (may have multiple questions per chunk)
+                
+                # Parse Q&A pairs
+                qa_pairs = None
+                if 'AI Bot' in doc_name or 'training' in doc_name:
                     qa_pairs = self._extract_qa_pairs(content, metadata)
-                    self.qa_cache.extend(qa_pairs)
-                    qa_docs_found += 1
+                    if qa_pairs:
+                        priority_qa.extend(qa_pairs)
+                elif 'Knowledge' in doc_name or 'Question' in doc_name:
+                    qa_pairs = self._extract_qa_pairs(content, metadata)
+                    if qa_pairs:
+                        secondary_qa.extend(qa_pairs)
             
-            logger.info(f"Processed {qa_docs_found} Q&A chunks, loaded {len(self.qa_cache)} Q&A pairs into cache")
+            # Add priority Q&A first, then secondary (avoids duplicates being overridden)
+            # Use dict to deduplicate by normalized question, keeping first occurrence (priority)
+            qa_dict = {}
+            for qa in priority_qa:
+                qa_dict[qa['normalized_q']] = qa
+            
+            # Debug: Check for key questions
+            test_q = normalize_text("What is Franquicia Boost?")
+            if test_q in qa_dict:
+                logger.info(f"Priority Q&A: 'What is Franquicia Boost?' = {qa_dict[test_q]['answer'][:50]}...")
+            
+            for qa in secondary_qa:
+                # Only add if not already in dict (priority takes precedence)
+                if qa['normalized_q'] not in qa_dict:
+                    qa_dict[qa['normalized_q']] = qa
+                else:
+                    logger.debug(f"Skipping duplicate from secondary: {qa['question'][:50]}...")
+            
+            self.qa_cache = list(qa_dict.values())
+            
+            logger.info(f"Loaded {len(self.qa_cache)} Q&A pairs (Priority: {len(priority_qa)}, Secondary: {len(secondary_qa)})")
             
         except Exception as e:
             logger.error(f"Error loading Q&A documents: {e}")
@@ -71,58 +101,96 @@ class QAMatcher:
                         'answer': answer,
                         'normalized_q': normalize_text(question)
                     })
+            # If we found Q1:/A: format, return now (don't try other formats)
+            if qa_pairs:
+                return qa_pairs
         
         # Format 2: "Question?" / Answer: format (AI Bot Knowledge training)
-        # Extract questions from content (could be quoted)
-        questions_in_content = re.findall(r'"([^"]+\?)"', content)
+        # This format has numbered sections (2., 3., 4., etc.)
+        # The first section (before "2.") may have multiple questions sharing one answer
         
-        # Also check if section contains the question
+        # Split by numbered sections starting from 2 onwards
+        parts = re.split(r'\n(\d+)\.\s+', content)
+        
+        # Process the first part (before any numbering - contains questions 1-2)
+        if len(parts) > 0:
+            first_section = parts[0]
+            questions = re.findall(r'"([^"]+\?)"', first_section)
+            
+            if 'Answer:' in first_section:
+                answer_parts = re.split(r'Answer:\s*\n', first_section, maxsplit=1)
+                if len(answer_parts) == 2:
+                    answer_text = answer_parts[1].strip().strip('"')
+                    
+                    # All questions in first section share this answer
+                    for question in questions:
+                        question = question.strip()
+                        if question and answer_text:
+                            qa_pairs.append({
+                                'question': question,
+                                'answer': answer_text,
+                                'normalized_q': normalize_text(question)
+                            })
+        
+        # Process numbered sections (2 onwards)
+        for i in range(1, len(parts), 2):
+            if i + 1 >= len(parts):
+                break
+            
+            number = parts[i]  # The captured number
+            section_content = parts[i + 1]  # The content after the number
+            
+            # Extract quoted questions
+            questions = re.findall(r'"([^"]+\?)"', section_content)
+            
+            # Extract answer (text after "Answer:")
+            if 'Answer:' in section_content:
+                answer_parts = re.split(r'Answer:\s*\n', section_content, maxsplit=1)
+                if len(answer_parts) == 2:
+                    answer_text = answer_parts[1]
+                    # Stop at next section (don't include it)
+                    answer_text = re.split(r'\n\d+\.\s+', answer_text)[0]
+                    answer_text = answer_text.strip().strip('"')
+                    
+                    # Add all questions with this answer
+                    for question in questions:
+                        question = question.strip()
+                        if question and answer_text:
+                            qa_pairs.append({
+                                'question': question,
+                                'answer': answer_text,
+                                'normalized_q': normalize_text(question)
+                            })
+        
+        # Also check section field for single Q&A chunks
         section = metadata.get('section', '')
-        if section and section != 'N/A':
-            # Remove numeric prefix like "16. " or "17: "
+        if section and section != 'N/A' and not qa_pairs:
+            # Remove numeric prefix
             section_clean = re.sub(r'^\d+\.?\s*:?\s*', '', section).strip().strip('"\'')
             if section_clean and '?' in section_clean:
-                questions_in_content.append(section_clean)
-        
-        # Extract answer from content
-        answer_text = None
-        
-        if 'Answer:' in content or 'answer:' in content:
-            # Split by "Answer:" marker
-            parts = re.split(r'(?i)\nanswer:\s*\n?', content, maxsplit=1)
-            if len(parts) == 2:
-                answer_text = parts[1]
-                # Clean answer - stop at next numbered item or next question
-                answer_text = re.split(r'\n\d+\.\s+|\nQ\d+:', answer_text)[0]
-                answer_text = answer_text.strip().strip('"')
-        
-        # If no explicit "Answer:" found, use the content after the question
-        if not answer_text and questions_in_content:
-            # Remove the question part and take what's left
-            for q in questions_in_content:
-                if q in content:
-                    parts = content.split(q, 1)
+                # Extract answer from content
+                if 'Answer:' in content or 'answer:' in content:
+                    parts = re.split(r'(?i)\nanswer:\s*\n?', content, maxsplit=1)
                     if len(parts) == 2:
-                        answer_text = parts[1].strip()
-                        # Clean answer
-                        answer_text = re.split(r'\n\d+\.\s+|\nQ\d+:', answer_text)[0]
-                        answer_text = answer_text.strip().strip('"')
-                        break
-        
-        # Create Q&A pairs for format 2
-        if questions_in_content and answer_text:
-            for question in questions_in_content:
-                question = question.strip().strip('"\'')
-                if question:
-                    qa_pairs.append({
-                        'question': question,
-                        'answer': answer_text,
-                        'normalized_q': normalize_text(question)
-                    })
+                        answer_text = parts[1].strip().strip('"')
+                        qa_pairs.append({
+                            'question': section_clean,
+                            'answer': answer_text,
+                            'normalized_q': normalize_text(section_clean)
+                        })
+                else:
+                    # Answer might be the content itself
+                    answer_text = content.replace(section_clean, '').strip()
+                    if answer_text:
+                        qa_pairs.append({
+                            'question': section_clean,
+                            'answer': answer_text,
+                            'normalized_q': normalize_text(section_clean)
+                        })
         
         return qa_pairs
     
-    def get_exact_answer(self, question: str, similarity_threshold: float = 0.6) -> Optional[str]:
+    def get_exact_answer(self, question: str, similarity_threshold: float = 0.7) -> Optional[str]:
         """
         Get exact answer if question matches a Q&A pair.
         
@@ -137,39 +205,78 @@ class QAMatcher:
             return None
         
         normalized_question = normalize_text(question)
+        question_tokens = set(normalized_question.split())
         
         best_match = None
         best_score = 0
+        best_method = None
         
         for qa in self.qa_cache:
             normalized_qa = qa['normalized_q']
+            qa_tokens = set(normalized_qa.split())
             
-            # Direct substring match
-            if normalized_qa in normalized_question or normalized_question in normalized_qa:
-                score = len(normalized_qa) if len(normalized_qa) > 0 else 0
-                if score > best_score:
-                    best_score = score
+            # Method 1: Exact match (highest priority)
+            if normalized_qa == normalized_question:
+                return qa['answer']
+            
+            # Method 2: One is complete substring of the other (high priority)
+            # But require significant overlap to avoid false matches
+            if normalized_qa in normalized_question:
+                # Check if the question is mostly about the Q&A topic
+                # e.g., "what is franquicia boost" matches "what is franquicia boost"
+                # but "what is venture x" should NOT match "what is an fdd"
+                score = len(normalized_qa) / len(normalized_question)
+                if score >= 0.7 and len(normalized_qa) > best_score:  # At least 70% overlap
+                    best_score = len(normalized_qa)
                     best_match = qa
+                    best_method = "substring"
+            elif normalized_question in normalized_qa:
+                score = len(normalized_question) / len(normalized_qa)
+                if score >= 0.7 and len(normalized_question) > best_score:
+                    best_score = len(normalized_question)
+                    best_match = qa
+                    best_method = "substring"
             
-            # Token overlap match
-            if not best_match:
-                qa_tokens = set(normalized_qa.split())
-                question_tokens = set(normalized_question.split())
+            # Method 3: Token overlap (STRICT - only for very similar questions)
+            # Filter out very short and generic tokens
+            stopwords = {'what', 'does', 'this', 'that', 'with', 'from', 'have', 'here', 'about', 'your', 'the'}
+            qa_tokens_filtered = {t for t in qa_tokens if len(t) > 3 and t not in stopwords}
+            question_tokens_filtered = {t for t in question_tokens if len(t) > 3 and t not in stopwords}
+            
+            if qa_tokens_filtered and question_tokens_filtered:
+                overlap = len(qa_tokens_filtered & question_tokens_filtered)
+                overlap_tokens = qa_tokens_filtered & question_tokens_filtered
                 
-                # Filter out very short tokens
-                qa_tokens_filtered = {t for t in qa_tokens if len(t) > 3}
-                question_tokens_filtered = {t for t in question_tokens if len(t) > 3}
+                # STRICT REQUIREMENT: Questions must share specific subject tokens
+                # e.g., "franquicia boost", not just generic "franchise" or "fdd"
+                # This prevents "what is venture x" from matching "what is an fdd"
                 
-                if qa_tokens_filtered and question_tokens_filtered:
-                    overlap = len(qa_tokens_filtered & question_tokens_filtered)
-                    token_score = overlap / len(qa_tokens_filtered)
+                # Check if they share the SAME key noun phrases
+                # For franchise questions, check if franchise name matches
+                has_franchise_name_qa = any(t in qa_tokens for t in ['venture', 'anago', 'snapon', 'tint', 'world', 'rnr'])
+                has_franchise_name_q = any(t in question_tokens for t in ['venture', 'anago', 'snapon', 'tint', 'world', 'rnr'])
+                
+                # If Q&A is about a specific franchise, question must also be about that franchise
+                if has_franchise_name_qa and not has_franchise_name_q:
+                    continue  # Don't match
+                
+                # If question is about a specific franchise, don't match generic Q&A
+                if has_franchise_name_q and not has_franchise_name_qa:
+                    continue  # Don't match
+                
+                # Require at least 80% of Q&A tokens to be in the question (very strict)
+                if len(qa_tokens_filtered) > 0:
+                    coverage = overlap / len(qa_tokens_filtered)
                     
-                    if token_score >= similarity_threshold and token_score > best_score:
-                        best_score = token_score
-                        best_match = qa
+                    # Only match if almost all Q&A tokens are covered
+                    if coverage >= 0.8 and overlap >= 2:  # At least 80% coverage and 2+ matching tokens
+                        if coverage > best_score:
+                            best_score = coverage
+                            best_match = qa
+                            best_method = "token"
         
         if best_match and best_score > 0:
-            logger.info(f"Q&A match found for '{question[:50]}...' with score {best_score:.2f}")
+            logger.info(f"Q&A match found for '{question[:50]}...' using {best_method} method with score {best_score:.2f}")
             return best_match['answer']
         
         return None
